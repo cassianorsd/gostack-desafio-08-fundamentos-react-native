@@ -29,20 +29,27 @@ interface Product {
 }
 
 const Dashboard: React.FC = () => {
-  const { addToCart } = useCart();
+  const { addToCart, increment, products: CartProducts } = useCart();
 
   const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     async function loadProducts(): Promise<void> {
-      // TODO
+      try {
+        const response = await api.get('/products');
+        setProducts(response.data);
+      } catch (error) {
+        console.log(error);
+      }
     }
 
     loadProducts();
   }, []);
 
   function handleAddToCart(item: Product): void {
-    // TODO
+    const isInCart = CartProducts.find(product => product.id === item.id);
+    if (!isInCart) return addToCart(item);
+    return increment(item.id);
   }
 
   return (
@@ -55,7 +62,7 @@ const Dashboard: React.FC = () => {
           ListFooterComponentStyle={{
             height: 80,
           }}
-          renderItem={({ item }) => (
+          renderItem={({ item }: { item: Product }) => (
             <Product>
               <ProductImage source={{ uri: item.image_url }} />
               <ProductTitle>{item.title}</ProductTitle>

@@ -18,7 +18,7 @@ interface Product {
 
 interface CartContext {
   products: Product[];
-  addToCart(item: Product): void;
+  addToCart(item: Omit<Product, 'quantity'>): void;
   increment(id: string): void;
   decrement(id: string): void;
 }
@@ -30,22 +30,63 @@ const CartProvider: React.FC = ({ children }) => {
 
   useEffect(() => {
     async function loadProducts(): Promise<void> {
+      try {
+        const items = await AsyncStorage.getItem('@GoMarketplace:products');
+        if (items) {
+          setProducts(JSON.parse(items));
+        }
+      } catch (err) {
+        console.log(err);
+      }
       // TODO LOAD ITEMS FROM ASYNC STORAGE
     }
 
     loadProducts();
   }, []);
 
-  const addToCart = useCallback(async product => {
-    // TODO ADD A NEW ITEM TO THE CART
+  useEffect(() => {
+    async function storeProducts(): Promise<void> {
+      try {
+        await AsyncStorage.setItem(
+          '@GoMarketplace:products',
+          JSON.stringify(products),
+        );
+      } catch (err) {
+        console.log(err);
+      }
+    }
+    storeProducts();
+  }, [products]);
+
+  const addToCart = useCallback(async (product: Omit<Product, 'quantity'>) => {
+    setProducts(oldCart => [...oldCart, { ...product, quantity: 1 }]);
   }, []);
 
   const increment = useCallback(async id => {
-    // TODO INCREMENTS A PRODUCT QUANTITY IN THE CART
+    setProducts(items =>
+      items.map(product => {
+        if (product.id === id)
+          return { ...product, quantity: product.quantity + 1 };
+        return { ...product };
+      }),
+    );
+    // await AsyncStorage.setItem(
+    //   '@GoMarketplace:products',
+    //   JSON.stringify(newProds),
+    // );
   }, []);
 
   const decrement = useCallback(async id => {
-    // TODO DECREMENTS A PRODUCT QUANTITY IN THE CART
+    setProducts(items =>
+      items.map(item => {
+        if (item.id === id)
+          return {
+            ...item,
+            quantity: item.quantity === 1 ? 0 : item.quantity - 1,
+          };
+        return item;
+      }),
+    );
   }, []);
 
   const value = React.useMemo(
